@@ -1,0 +1,14 @@
+fastapi
+torch
+uvicorn
+vllm
+python-dotenv
+pydantic
+numpy
+python-multipart
+transformers[torch]
+psutil 
+py-cpuinfo
+accelerate
+matplotlib
+pandas
