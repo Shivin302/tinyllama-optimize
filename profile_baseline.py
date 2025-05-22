@@ -105,11 +105,19 @@ class BaselineProfiler(ModelProfiler):
             
             # Calculate metrics
             duration = time.time() - start_time
-            # Only count newly generated tokens (after input_length)
-            num_generated_tokens = (outputs[0, inputs['input_ids'].shape[1]:] != self.tokenizer.eos_token_id).sum().item()
+            # Count newly generated tokens for all sequences in the batch
+            input_length = inputs['input_ids'].shape[1]
+            batch_generated_tokens = 0
             
+            # Process each sequence in the batch
+            for seq_idx in range(outputs.shape[0]):
+                # Get tokens after input length for each sequence
+                gen_tokens = outputs[seq_idx, input_length:]
+                # Count non-EOS tokens (handle padding if any)
+                batch_generated_tokens += (gen_tokens != self.tokenizer.eos_token_id).sum().item()
+                        
             latencies.append(duration)
-            tokens_per_second.append(num_generated_tokens / duration)
+            tokens_per_second.append(batch_generated_tokens / duration)
         
         # Calculate statistics
         stats = {
@@ -141,12 +149,11 @@ def main():
     results = profiler.run_comprehensive_profile(
         num_runs=3,
         warmup_runs=1,
-        output_dir="baseline_profiling_results"
     )
     
     # Save results
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = "baseline_profiling_results"
+    output_dir = "profiling_results/baseline"
     os.makedirs(output_dir, exist_ok=True)
     
     csv_path = f"{output_dir}/results_{timestamp}.csv"
@@ -154,7 +161,7 @@ def main():
     print(f"\nProfiling results saved to: {csv_path}")
     
     profiler.plot_results(results, output_dir)
-    print("Generated plots in the baseline_profiling_results directory.")
+    print("Generated plots in the profiling_results/baseline directory.")
     
     print("\nProfiling Summary:")
     print(results[['batch_size', 'max_new_tokens', 

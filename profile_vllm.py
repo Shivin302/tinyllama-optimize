@@ -25,20 +25,42 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class vLLMProfiler(ModelProfiler):
-    def __init__(self, model_name: str, tensor_parallel_size: int = 1):
+    def __init__(self, model_name: str):
         """Initialize the vLLM profiler with the model."""
-        self.tensor_parallel_size = tensor_parallel_size
         super().__init__(model_name, DEVICE)
     
     def load_model(self):
         print(f"Loading model {self.model_name} with vLLM...")
-        self.llm = LLM(
-            model=self.model_name,
-            tensor_parallel_size=self.tensor_parallel_size,
-            trust_remote_code=True,
-            gpu_memory_utilization=0.9,
-            enforce_eager=True  # Disable CUDA graph for more accurate benchmarking
-        )
+
+        llm_params = {
+            "model": self.model_name,
+            "trust_remote_code": True,
+            "gpu_memory_utilization": 0.9,
+            "enforce_eager": True  # Disable CUDA graph for more accurate benchmarking
+        }
+
+        kv_cache = False
+        if kv_cache:
+            llm_params["kv_cache_dtype"] = "fp8"
+            llm_params["calculate_kv_scales"] = True
+
+        awq_4bit = True
+        if awq_4bit:
+            llm_params["model"] = "TheBloke/TinyLlama-1.1B-Chat-v0.3-AWQ"
+
+        prefix_caching = False
+        if prefix_caching:
+            llm_params["enable_prefix_caching"] = True
+
+        speculative_decoding = False
+        if speculative_decoding:
+            llm_params["speculative_config"] = {
+                "model": "yuhuili/EAGLE-llama2-chat-7B",
+                "num_speculative_tokens": 5,
+            }
+
+
+        self.llm = LLM(**llm_params)
         print(f"vLLM model loaded on {DEVICE}")
     
 
@@ -128,13 +150,12 @@ def main():
     print("Starting TinyLlama vLLM profiling...")
     print(f"Using device: {DEVICE}")
     
-    profiler = vLLMProfiler(MODEL_NAME, tensor_parallel_size=1)
+    profiler = vLLMProfiler(MODEL_NAME)
     
     print("\nStarting comprehensive profiling...")
     results = profiler.run_comprehensive_profile(
         num_runs=3,
         warmup_runs=1,
-        output_dir="vllm_profiling_results"
     )
             
     # Save results

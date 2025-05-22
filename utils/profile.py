@@ -25,9 +25,9 @@ MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Test configurations
-BATCH_SIZES = [1, 2]
-MAX_NEW_TOKENS = [64, 128]  # Test different output lengths
-INPUT_LENGTHS = [64, 128]
+BATCH_SIZES = [1, 2, 4, 8, 16]
+MAX_NEW_TOKENS = [32, 64, 128]  # Test different output lengths
+INPUT_LENGTHS = [64]
 
 
 class ModelProfiler(ABC):
