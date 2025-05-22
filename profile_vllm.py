@@ -139,7 +139,7 @@ def main():
             
     # Save results
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = "vllm_profiling_results"
+    output_dir = "profiling_results/vllm"
     os.makedirs(output_dir, exist_ok=True)
     
     csv_path = f"{output_dir}/results_{timestamp}.csv"
@@ -147,7 +147,7 @@ def main():
     print(f"\nProfiling results saved to: {csv_path}")
     
     profiler.plot_results(results, output_dir)
-    print("Generated plots in the vllm_profiling_results directory.")
+    print("Generated plots in the profiling_results/vllm directory.")
     
     print("\nProfiling Summary:")
     print(results[['batch_size', 'max_new_tokens', 

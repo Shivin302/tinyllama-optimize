@@ -71,7 +71,6 @@ class ModelProfiler(ABC):
         self,
         num_runs: int = 3,
         warmup_runs: int = 1,
-        output_dir: str = "profiling_results"
     ) -> pd.DataFrame:
         """Run a comprehensive profiling of the model with different configurations.
         
@@ -87,8 +86,6 @@ class ModelProfiler(ABC):
         Returns:
             DataFrame containing profiling results
         """        
-        output_dir = os.path.join(os.path.dirname(__file__), "profiling_results")
-        os.makedirs(output_dir, exist_ok=True)
         
         results = []
         total_combinations = len(BATCH_SIZES) * len(MAX_NEW_TOKENS) * len(INPUT_LENGTHS)
@@ -126,8 +123,6 @@ class ModelProfiler(ABC):
                         pbar.update(1)
         
         df = pd.DataFrame(results)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        df.to_csv(f"{output_dir}/profiling_results_{timestamp}.csv", index=False)
         return df
     
     @staticmethod
@@ -194,37 +189,3 @@ class ModelProfiler(ABC):
         plt.savefig(f"{output_dir}/tokens_per_second_vs_batch_size.png")
         plt.close()
         
-
-def main():
-    """Main function to run the profiling."""
-    print("Starting TinyLlama model profiling...")
-    print(f"Using device: {DEVICE}")
-    
-    profiler = ModelProfiler(MODEL_NAME, DEVICE)
-    
-    print("\nStarting comprehensive profiling...")
-    results = profiler.run_comprehensive_profile(
-        num_runs=3,
-        warmup_runs=1,
-        output_dir="profiling_results"
-    )
-    
-    # Save results
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = "profiling_results"
-    os.makedirs(output_dir, exist_ok=True)
-    
-    csv_path = f"{output_dir}/profiling_results_{timestamp}.csv"
-    results.to_csv(csv_path, index=False)
-    print(f"\nProfiling results saved to: {csv_path}")
-    
-    profiler.plot_results(results, output_dir)
-    print("Generated plots in the profiling_results directory.")
-    
-    print("\nProfiling Summary:")
-    print(results[['batch_size', 'max_new_tokens', 
-                    'avg_latency_ms', 'avg_tokens_per_second']].to_string())
-        
-
-if __name__ == "__main__":
-    main()
