@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import gc
 from datetime import datetime
-from utils.llm_prompt import PROMPT
+from tinyllama.utils.llm_prompt import PROMPT
 from abc import ABC, abstractmethod
 
 # Configuration
@@ -25,9 +25,9 @@ MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Test configurations
-BATCH_SIZES = [1, 2, 4, 8, 16]
-MAX_NEW_TOKENS = [32, 64, 128]  # Test different output lengths
-INPUT_LENGTHS = [64]
+BATCH_SIZES = [1, 2, 4, 8, 16, 32, 64, 128]
+MAX_NEW_TOKENS = [128, 256, 512, 1024]  # Test different output lengths
+INPUT_LENGTHS = [128]
 
 
 class ModelProfiler(ABC):
@@ -125,67 +125,3 @@ class ModelProfiler(ABC):
         df = pd.DataFrame(results)
         return df
     
-    @staticmethod
-    def plot_results(df: pd.DataFrame, output_dir: str = "profiling_results"):
-        """Plot profiling results with support for different input lengths."""
-        os.makedirs(output_dir, exist_ok=True)
-        
-        # Plot latency vs batch size for different input lengths and output lengths
-        plt.figure(figsize=(14, 8))
-        
-        # Create a grid of subplots: one row per input length
-        fig, axes = plt.subplots(len(df['input_length'].unique()), 1, 
-                               figsize=(14, 6 * len(df['input_length'].unique())))
-        if len(df['input_length'].unique()) == 1:
-            axes = [axes]  # Ensure axes is always a list
-            
-        for ax, (input_len, group) in zip(axes, df.groupby('input_length')):
-            for max_tokens in sorted(group['max_new_tokens'].unique()):
-                subset = group[group['max_new_tokens'] == max_tokens]
-                ax.errorbar(
-                    subset['batch_size'],
-                    subset['avg_latency_ms'],
-                    yerr=subset['std_latency_ms'],
-                    label=f'Output={max_tokens} tokens',
-                    marker='o',
-                    capsize=5
-                )
-            
-            ax.set_title(f'Input Length: {input_len} tokens')
-            ax.set_xlabel('Batch Size')
-            ax.set_ylabel('Latency (ms)')
-            ax.legend()
-            ax.grid(True)
-        
-        plt.tight_layout()
-        plt.savefig(f"{output_dir}/latency_vs_batch_size.png")
-        plt.close()
-        
-        # Plot tokens per second vs batch size
-        fig, axes = plt.subplots(len(df['input_length'].unique()), 1, 
-                               figsize=(14, 6 * len(df['input_length'].unique())))
-        if len(df['input_length'].unique()) == 1:
-            axes = [axes]  # Ensure axes is always a list
-            
-        for ax, (input_len, group) in zip(axes, df.groupby('input_length')):
-            for max_tokens in sorted(group['max_new_tokens'].unique()):
-                subset = group[group['max_new_tokens'] == max_tokens]
-                ax.errorbar(
-                    subset['batch_size'],
-                    subset['avg_tokens_per_second'],
-                    yerr=subset['std_tokens_per_second'],
-                    label=f'Output={max_tokens} tokens',
-                    marker='o',
-                    capsize=5
-                )
-            
-            ax.set_title(f'Input Length: {input_len} tokens')
-            ax.set_xlabel('Batch Size')
-            ax.set_ylabel('Tokens per Second')
-            ax.legend()
-            ax.grid(True)
-        
-        plt.tight_layout()
-        plt.savefig(f"{output_dir}/tokens_per_second_vs_batch_size.png")
-        plt.close()
-        

@@ -9,21 +9,11 @@ import pandas as pd
 import argparse
 from tqdm import tqdm
 import os
-from utils.llm_prompt import PROMPT
-from vllm_server import vllm_server
-from vllm import LLM
-
-
-llm_params = {
-    "trust_remote_code": True,
-    "gpu_memory_utilization": 0.05,
-    "enforce_eager": True,
-    "model": "TheBloke/TinyLlama-1.1B-Chat-v0.3-AWQ"  # Using AWQ quantized version
-}
-llm = LLM(**llm_params)
+from transformers import AutoTokenizer
+from tinyllama.utils.llm_prompt import PROMPT
 
 def truncate_prompt(prompt: str, max_length: int) -> str:
-    """Truncate the prompt to the specified number of tokens.
+    """Truncate the prompt to the specified number of tokens using TinyLlama's tokenizer.
     
     Args:
         prompt: The input text prompt
@@ -32,11 +22,11 @@ def truncate_prompt(prompt: str, max_length: int) -> str:
     Returns:
         Truncated prompt as a string
     """
-    # Get the tokenizer from the vLLM model
-    tokenizer = llm.get_tokenizer()
+    # Initialize TinyLlama tokenizer
+    tokenizer = AutoTokenizer.from_pretrained("TinyLlama/TinyLlama-1.1B-Chat-v1.0")
     
     # Encode the prompt to token IDs
-    token_ids = tokenizer.encode(prompt)
+    token_ids = tokenizer.encode(prompt, add_special_tokens=False)
     
     # If the prompt is already shorter than max_length, return as is
     if len(token_ids) <= max_length:
@@ -44,7 +34,7 @@ def truncate_prompt(prompt: str, max_length: int) -> str:
         
     # Truncate the token IDs and decode back to text
     truncated_ids = token_ids[:max_length]
-    return tokenizer.decode(truncated_ids)
+    return tokenizer.decode(truncated_ids, skip_special_tokens=True)
 
 class vLLMClient:
     def __init__(self, base_url: str = "http://localhost:8000"):
@@ -125,14 +115,7 @@ async def profile_generation(
     return pd.DataFrame(results)
 
 async def main():
-    parser = argparse.ArgumentParser(description="Profile vLLM server")
-    parser.add_argument("--host", type=str, default="localhost", help="Server host")
-    parser.add_argument("--port", type=int, default=8000, help="Server port")
-    parser.add_argument("--output", type=str, default="vllm_server_profile.csv", 
-                       help="Output CSV file")
-    args = parser.parse_args()
-    
-    client = vLLMClient(f"http://{args.host}:{args.port}")
+    client = vLLMClient(f"http://localhost:8000")
     
     # Test connection
     try:
@@ -142,8 +125,8 @@ async def main():
         return
     
     # Run profiling
-    batch_sizes = [1, 2, 4, 8, 16]
-    max_new_tokens_list = [32, 64, 128]
+    batch_sizes = [1, 2, 4]
+    max_new_tokens_list = [64, 128]
     input_length = 64
 
     prompt = truncate_prompt(PROMPT, input_length)
@@ -159,8 +142,8 @@ async def main():
     )
     
     # Save results
-    results.to_csv(args.output, index=False)
-    print(f"\nProfiling results saved to {args.output}")
+    results.to_csv("vllm_server_profile.csv", index=False)
+    print(f"\nProfiling results saved to vllm_server_profile.csv")
     print("\nProfiling Summary:")
     print(results[['batch_size', 'max_new_tokens', 
                   'avg_latency_ms', 'avg_tokens_per_second']].to_string())

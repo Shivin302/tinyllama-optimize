@@ -2,35 +2,37 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-from vllm import LLM, SamplingParams
+from vllm import LLM, SamplingParams, AsyncLLMEngine
 import uvicorn
 import os
+from vllm.engine.arg_utils import AsyncEngineArgs
+
 
 app = FastAPI()
 
 class GenerationRequest(BaseModel):
     prompts: List[str]
+    request_id: str = "request_id"
     max_tokens: int = 128
     temperature: float = 0.7
     top_p: float = 1.0
     top_k: int = 50
 
-class vLLMServer:
+class vLLMServerBasic:
     def __init__(self):
         self.llm = None
         self.load_model()
 
     def load_model(self):
         llm_params = {
+            "model": "TheBloke/TinyLlama-1.1B-Chat-v0.3-AWQ",  # Using AWQ quantized version
             "trust_remote_code": True,
-            "gpu_memory_utilization": 0.8,
-            "enforce_eager": True,
-            "model": "TheBloke/TinyLlama-1.1B-Chat-v0.3-AWQ"  # Using AWQ quantized version
+            "gpu_memory_utilization": 0.9,
         }
         self.llm = LLM(**llm_params)
         print("vLLM model loaded")
 
-vllm_server = vLLMServer()
+vllm_server = vLLMServerBasic()
 
 @app.post("/generate")
 async def generate(request: GenerationRequest):
@@ -48,7 +50,6 @@ async def generate(request: GenerationRequest):
         outputs = vllm_server.llm.generate(
             request.prompts,
             sampling_params,
-            use_tqdm=False
         )
         
         results = []

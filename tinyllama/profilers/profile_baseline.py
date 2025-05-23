@@ -17,8 +17,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import gc
 from datetime import datetime
-from utils.llm_prompt import PROMPT
-from utils.profile import ModelProfiler
+from tinyllama.utils.llm_prompt import PROMPT
+from tinyllama.utils.profile import ModelProfiler
 
 # Configuration
 MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"

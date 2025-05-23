@@ -14,8 +14,8 @@ from typing import List, Dict
 import matplotlib.pyplot as plt
 from datetime import datetime
 from vllm import LLM, SamplingParams
-from utils.llm_prompt import PROMPT
-from utils.profile import ModelProfiler
+from tinyllama.utils.llm_prompt import PROMPT
+from tinyllama.utils.profile import ModelProfiler
 import torch
 
 
@@ -36,12 +36,11 @@ class vLLMProfiler(ModelProfiler):
             "model": self.model_name,
             "trust_remote_code": True,
             "gpu_memory_utilization": 0.9,
-            "enforce_eager": True  # Disable CUDA graph for more accurate benchmarking
         }
 
         kv_cache = False
         if kv_cache:
-            llm_params["kv_cache_dtype"] = "fp8"
+            llm_params["kv_cache_dtype"] = "fp8_e5m2"
             llm_params["calculate_kv_scales"] = True
 
         awq_4bit = True
@@ -113,7 +112,7 @@ class vLLMProfiler(ModelProfiler):
         
         # Warmup runs
         for _ in range(warmup_runs):
-            _ = self.llm.generate(prompts, sampling_params, use_tqdm=False)
+            _ = self.llm.generate(prompts, sampling_params)
 
         self.clear_cuda_cache()
         
@@ -123,7 +122,7 @@ class vLLMProfiler(ModelProfiler):
         
         for _ in range(num_runs):
             start_time = time.time()
-            outputs = self.llm.generate(prompts, sampling_params, use_tqdm=False)
+            outputs = self.llm.generate(prompts, sampling_params)
             duration = time.time() - start_time
             
             # Calculate metrics
@@ -167,8 +166,6 @@ def main():
     results.to_csv(csv_path, index=False)
     print(f"\nProfiling results saved to: {csv_path}")
     
-    profiler.plot_results(results, output_dir)
-    print("Generated plots in the profiling_results/vllm directory.")
     
     print("\nProfiling Summary:")
     print(results[['batch_size', 'max_new_tokens', 
