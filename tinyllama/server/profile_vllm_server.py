@@ -16,10 +16,10 @@ CONFIG = {
     "host": "localhost",
     "port": 8000,
     "output_file": "vllm_concurrent_profile.csv",
-    "batch_sizes": [1, 2, 4, 8],
+    "batch_sizes": [1],
     "max_tokens_list": [512],
-    "concurrency_levels": [1, 2, 4, 8],
-    "requests_per_level": 512,
+    "concurrency_levels": [1, 2, 4, 8, 16, 32],
+    "requests_per_level": 128,
     "input_length": 128
 }
 
