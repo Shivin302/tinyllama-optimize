@@ -16,19 +16,17 @@ CONFIG = {
     "host": "localhost",
     "port": 8000,
     "output_file": "vllm_concurrent_profile.csv",
-    "batch_sizes": [1],
+    "batch_sizes": [1, 2, 4, 8],
     "max_tokens_list": [512],
-    "concurrency_levels": [1, 2, 4, 8, 16],
-    "requests_per_level": 20,
+    "concurrency_levels": [1, 2, 4, 8],
+    "requests_per_level": 512,
     "input_length": 128
 }
 
 class vLLMClient:
     def __init__(self, base_url: str = "http://localhost:8000"):
         self.base_url = base_url.rstrip("/")
-        self.session = aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(limit=128)
-        )
+        self.session = aiohttp.ClientSession()
         
     async def __aenter__(self):
         return self
@@ -91,6 +89,9 @@ async def make_request(
         request_id=request_id
     )
     # print(f"Received request: {request_id}")
+    # print("Prompt: ", prompt)
+    # print("Response: ", response["results"][0]["text"])
+    # print(response["results"][0]["tokens"])
     total_tokens = sum(r["tokens"] for r in response["results"])
     return latency, total_tokens
 
@@ -133,7 +134,7 @@ async def profile_concurrent_requests(
         "std_latency_ms": np.std(latencies),
         "p90_latency_ms": np.percentile(latencies, 90),
         "p99_latency_ms": np.percentile(latencies, 99),
-        "throughput_tps": num_requests * np.sum(num_tokens) / total_time,
+        "throughput_tps": np.sum(num_tokens) / total_time,
     }
 
 async def run_profiling(

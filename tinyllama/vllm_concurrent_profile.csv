@@ -1,0 +1,2 @@
+concurrency,batch_size,max_tokens,total_requests,avg_latency_ms,std_latency_ms,p90_latency_ms,p99_latency_ms,throughput_tps,input_length
+128,1,512,512,4892.43,1557.63,7804.42,7842.96,12156.49,128

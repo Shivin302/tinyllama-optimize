@@ -266,11 +266,10 @@ if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description='Generate concurrency analysis plots from vLLM profile data')
-    parser.add_argument('--input', type=str, default='vllm_concurrent_profile.csv',
+    parser.add_argument('--csv_path', type=str, default='vllm_concurrent_profile.csv',
                        help='Path to the input CSV file')
-    parser.add_argument('--output', type=str, default=None,
-                       help='Output directory for plots (default: <input_dir>/concurrency_plots)')
-    
     args = parser.parse_args()
+
+    output_dir = os.path.join(os.path.dirname(__file__), 'concurrency_plots')
     
-    main(args.input, args.output)
+    main(args.csv_path, output_dir)

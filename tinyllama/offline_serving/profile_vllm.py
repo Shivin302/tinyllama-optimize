@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from vllm import LLM, SamplingParams
 from tinyllama.utils.llm_prompt import PROMPT
-from tinyllama.utils.profile import ModelProfiler
+from tinyllama.offline_serving.profile import ModelProfiler
 import torch
 
 
@@ -123,13 +123,13 @@ class vLLMProfiler(ModelProfiler):
         for _ in range(num_runs):
             start_time = time.time()
             outputs = self.llm.generate(prompts, sampling_params)
-            duration = time.time() - start_time
+            latency = time.time() - start_time
             
             # Calculate metrics
             num_output_tokens = sum(len(output.outputs[0].token_ids) for output in outputs)
-            avg_tokens_per_second = num_output_tokens / duration
+            avg_tokens_per_second = num_output_tokens / latency
             
-            latencies.append(duration)
+            latencies.append(latency)
             tokens_per_second.append(avg_tokens_per_second)
         
         stats = {
@@ -159,13 +159,13 @@ def main():
             
     # Save results
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = "profiling_results/vllm"
+    output_dir = os.path.join(os.path.dirname(__file__), "profiling_results", "vllm")
     os.makedirs(output_dir, exist_ok=True)
     
     csv_path = f"{output_dir}/results_{timestamp}.csv"
     results.to_csv(csv_path, index=False)
     print(f"\nProfiling results saved to: {csv_path}")
-    
+
     
     print("\nProfiling Summary:")
     print(results[['batch_size', 'max_new_tokens', 

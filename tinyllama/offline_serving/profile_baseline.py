@@ -18,7 +18,7 @@ import pandas as pd
 import gc
 from datetime import datetime
 from tinyllama.utils.llm_prompt import PROMPT
-from tinyllama.utils.profile import ModelProfiler
+from tinyllama.offline_serving.profile import ModelProfiler
 
 # Configuration
 MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
@@ -153,15 +153,13 @@ def main():
     
     # Save results
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = "profiling_results/baseline"
+    output_dir = os.path.join(os.path.dirname(__file__), "profiling_results", "baseline")
     os.makedirs(output_dir, exist_ok=True)
     
     csv_path = f"{output_dir}/results_{timestamp}.csv"
     results.to_csv(csv_path, index=False)
     print(f"\nProfiling results saved to: {csv_path}")
     
-    profiler.plot_results(results, output_dir)
-    print("Generated plots in the profiling_results/baseline directory.")
     
     print("\nProfiling Summary:")
     print(results[['batch_size', 'max_new_tokens', 

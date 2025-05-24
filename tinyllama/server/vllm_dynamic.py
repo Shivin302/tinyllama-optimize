@@ -6,7 +6,8 @@ from vllm import LLM, SamplingParams, AsyncLLMEngine
 import uvicorn
 import os
 from vllm.engine.arg_utils import AsyncEngineArgs
-
+from vllm.usage.usage_lib import UsageContext
+import asyncio
 
 app = FastAPI()
 
@@ -33,7 +34,7 @@ class vLLMServerDynamicBatching:
             "max_num_seqs": 128,
         }
         engine_args = AsyncEngineArgs(**llm_params)
-        self.llm = AsyncLLMEngine.from_engine_args(engine_args)
+        self.llm = AsyncLLMEngine.from_engine_args(engine_args, usage_context=UsageContext.API_SERVER)
         print("vLLM model loaded")
 
 vllm_server = vLLMServerDynamicBatching()
@@ -52,21 +53,29 @@ async def generate(request: GenerationRequest):
     )
 
     try:
-        assert len(request.prompts) == 1, "Only one prompt is supported"
-
         outputs_generator = vllm_server.llm.generate(
             request.prompts[0],
             sampling_params,
             request_id=request.request_id
         )
         
-        output = await outputs_generator.__anext__()
-        
+        final_output = None
+        try:
+            async for request_output in outputs_generator:
+                final_output = request_output
+        except asyncio.CancelledError:
+            return Response(status_code=499)
+
+        assert final_output is not None
+        results = []
+        for output in final_output.outputs:
+            results.append({
+                "text": output.text,
+                "tokens": len(output.token_ids)
+            })
+
         return {
-            "results": [{
-                "text": output.outputs[0].text,
-                "tokens": len(output.outputs[0].token_ids)
-            }]
+            "results": results
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

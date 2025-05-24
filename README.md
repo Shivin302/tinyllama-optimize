@@ -18,8 +18,8 @@ This project focuses on optimizing the inference performance of the TinyLlama mo
 
 2. **Create and activate a virtual environment** (optional but recommended)
    ```bash
-   python -m venv venv
-   source venv/bin/activate 
+   uv venv tinyllama_env
+   source tinyllama_env/bin/activate 
    ```
 
 3. **Install the package in development mode**
@@ -53,26 +53,19 @@ tinyllama-optimize/
 To start the vLLM server with default settings:
 
 ```bash
-python -m tinyllama.server.vllm_server
-```
-
-Available options:
-```bash
-python -m tinyllama.server.vllm_server \
-    --model TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
-    --port 8000 \
-    --tensor-parallel-size 1 \
-    --max-num-batched-tokens 4096
+cd tinyllama
+python server/vllm_dynamic.py
 ```
 
 ### 2. Profiling the Model
 
-#### Basic Profiling
+#### Basic Profiling Offline
 
 Run the basic profiler to measure performance metrics:
 
 ```bash
-python -m tinyllama.profilers.profile_vllm
+cd tinyllama
+python offline_serving/profile_vllm.py
 ```
 
 #### Concurrency Profiling
@@ -81,25 +74,26 @@ To profile the server under different concurrency levels:
 
 1. Start the vLLM server in a separate terminal
 2. Run the concurrency profiler:
-   ```bash
-   python -m tinyllama.server.profile_vllm_server
-   ```
-
-This will generate plots in the `concurrency_plots` directory.
+```bash
+cd tinyllama
+python server/profile_vllm_server.py
+```
+This will generate a CSV file with profiling results in the `tinyllama` directory.
 
 ### 3. Generating Plots
 
 To generate plots from existing profiling data:
 
 ```bash
-python -m tinyllama.utils.plot_concurrency --input path/to/profile_data.csv
+python utils/plot_concurrency.py --csv_path vllm_concurrent_profile.csv
 ```
+This will generate plots in the `concurrency_plots` directory.
 
 ## Configuration
 
 ### Server Configuration
 
-Modify server parameters in `tinyllama/server/vllm_server.py`:
+Modify server parameters in `tinyllama/server/vllm_dynamic.py`:
 - Model name/path
 - Tensor parallelism
 - Maximum sequence length
@@ -107,7 +101,7 @@ Modify server parameters in `tinyllama/server/vllm_server.py`:
 
 ### Profiling Configuration
 
-Adjust profiling parameters in `tinyllama/utils/profile.py`:
+Adjust profiling parameters in `tinyllama/offline_serving/profile.py` or `tinyllama/server/profile_vllm_server.py`:
 - Batch sizes
 - Input/output sequence lengths
 - Number of warmup and measurement runs
@@ -124,13 +118,6 @@ This project implements several optimization techniques:
    - Dynamic batching
    - Continuous batching
 
-3. **KV Cache Optimization**
-   - PagedAttention
-   - Memory-efficient caching
-
-4. **Attention Optimization**
-   - Flash Attention
-   - Grouped-query attention
 
 ## Performance Metrics
 
